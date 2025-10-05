@@ -19,21 +19,17 @@ const ListClosedSales = ({ closedSales, revertSale, deleteClosedSale, loadSales 
 
   const handlePrint = (sale) => {
     setInvoiceSale(sale);
+  
+    // Wait for React to render the Invoice first
     setTimeout(() => {
       if (invoiceRef.current) {
         const printContents = invoiceRef.current.innerHTML;
-        const printWindow = document.createElement("iframe");
-        printWindow.style.position = "fixed";
-        printWindow.style.right = "0";
-        printWindow.style.bottom = "0";
-        printWindow.style.width = "0";
-        printWindow.style.height = "0";
-        printWindow.style.border = "0";
-        document.body.appendChild(printWindow);
-
-        const doc = printWindow.contentWindow.document;
-        doc.open();
-        doc.write(`
+  
+        // Open a new window
+        const printWindow = window.open("", "_blank", "width=600,height=800");
+  
+        printWindow.document.open();
+        printWindow.document.write(`
           <html>
             <head>
               <title>Receipt - ${sale.invoice_number}</title>
@@ -69,16 +65,23 @@ const ListClosedSales = ({ closedSales, revertSale, deleteClosedSale, loadSales 
                 }
               </style>
             </head>
-            <body>${printContents}</body>
+            <body>
+              ${printContents}
+            </body>
           </html>
         `);
-        doc.close();
-        printWindow.contentWindow.focus();
-        printWindow.contentWindow.print();
-        setTimeout(() => document.body.removeChild(printWindow), 1000);
+        printWindow.document.close();
+  
+        // Wait for content to load before printing
+        printWindow.onload = () => {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+        };
       }
     }, 200);
   };
+  
 
   return (
     <div className="text-gray-800 dark:text-gray-100">

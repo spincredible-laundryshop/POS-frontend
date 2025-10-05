@@ -43,77 +43,71 @@ const ListSales = ({
       }
     };
 
-  const handlePrint = (sale) => {
-    setInvoiceSale(sale);
-  
-    // Wait for React to render the Invoice first before printing
-    setTimeout(() => {
-      if (invoiceRef.current) {
-        const printContents = invoiceRef.current.innerHTML;
-  
-        const printWindow = document.createElement("iframe");
-        printWindow.style.position = "fixed";
-        printWindow.style.right = "0";
-        printWindow.style.bottom = "0";
-        printWindow.style.width = "0";
-        printWindow.style.height = "0";
-        printWindow.style.border = "0";
-  
-        document.body.appendChild(printWindow);
-        const doc = printWindow.contentWindow.document;
-  
-        doc.open();
-        doc.write(`
-          <html>
-            <head>
-              <title>Receipt - ${sale.invoice_number}</title>
-              <style>
-                @media print {
-                  body {
-                    font-family: "Courier New", monospace;
-                    font-size: 12px;
-                    width: 58mm;
-                    margin: 0;
-                    padding: 0;
+    const handlePrint = (sale) => {
+      setInvoiceSale(sale);
+    
+      // Wait for React to render the Invoice first
+      setTimeout(() => {
+        if (invoiceRef.current) {
+          const printContents = invoiceRef.current.innerHTML;
+    
+          // Open a new window
+          const printWindow = window.open("", "_blank", "width=600,height=800");
+    
+          printWindow.document.open();
+          printWindow.document.write(`
+            <html>
+              <head>
+                <title>Receipt - ${sale.invoice_number}</title>
+                <style>
+                  @media print {
+                    body {
+                      font-family: "Courier New", monospace;
+                      font-size: 12px;
+                      width: 58mm;
+                      margin: 0;
+                      padding: 0;
+                    }
+                    .receipt {
+                      width: 100%;
+                      padding: 10px;
+                    }
+                    .receipt-header {
+                      text-align: center;
+                      font-weight: bold;
+                      margin-bottom: 10px;
+                    }
+                    .receipt-item {
+                      display: flex;
+                      justify-content: space-between;
+                    }
+                    .receipt-total {
+                      border-top: 1px dashed #000;
+                      margin-top: 10px;
+                      padding-top: 5px;
+                      text-align: right;
+                      font-weight: bold;
+                    }
                   }
-                  .receipt {
-                    width: 100%;
-                    padding: 10px;
-                  }
-                  .receipt-header {
-                    text-align: center;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                  }
-                  .receipt-item {
-                    display: flex;
-                    justify-content: space-between;
-                  }
-                  .receipt-total {
-                    border-top: 1px dashed #000;
-                    margin-top: 10px;
-                    padding-top: 5px;
-                    text-align: right;
-                    font-weight: bold;
-                  }
-                }
-              </style>
-            </head>
-            <body>
-              ${printContents}
-            </body>
-          </html>
-        `);
-        doc.close();
-  
-        printWindow.contentWindow.focus();
-        printWindow.contentWindow.print();
-  
-        // cleanup after print
-        setTimeout(() => document.body.removeChild(printWindow), 1000);
-      }
-    }, 200);
-  };
+                </style>
+              </head>
+              <body>
+                ${printContents}
+              </body>
+            </html>
+          `);
+          printWindow.document.close();
+    
+          // Wait for content to load before printing
+          printWindow.onload = () => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+          };
+        }
+      }, 200);
+    };
+    
 
   const handleAddItemToSale = async (sale, item, type) => {
     const newEntry =
