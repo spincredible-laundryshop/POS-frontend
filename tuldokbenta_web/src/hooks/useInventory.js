@@ -1,8 +1,8 @@
 // hooks/useInventory.js
 import { useState, useCallback } from "react";
 
-const API_URL = "http://localhost:5001/api"; // change for production
-// const API_URL = "https://backend-cashly.onrender.com/api"; 
+// const API_URL = "http://localhost:5001/api"; // change for production
+const API_URL = "https://pos-backend-ygit.onrender.com"; 
 
 export const useInventory = () => {
   const [inventory, setInventory] = useState([]);
