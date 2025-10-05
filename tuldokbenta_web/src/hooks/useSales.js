@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 
 // const API_URL = "http://localhost:5001/api"; // change for production
-const API_URL = "https://pos-backend-ygit.onrender.com"; 
+const API_URL = "https://pos-backend-ygit.onrender.com/api"; 
 
 export const useSales = () => {
   const [openSales, setOpenSales] = useState([]);
