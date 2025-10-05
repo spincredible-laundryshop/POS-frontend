@@ -50,10 +50,20 @@ export default function Reporting() {
   };
 
   const filteredOpenSales = useMemo(() => filterByDate(openSales), [openSales, lowDate, highDate]);
-  // const filteredClosedSales = useMemo(() => filterByDate(closedSales), [closedSales, lowDate, highDate]);
-  const filteredClosedSales = useMemo(
+  const filteredClosedSales = useMemo(() => filterByDate(closedSales), [closedSales, lowDate, highDate]);
+  const filteredClosedSalesToday = useMemo(
     () => filterClosedSalesByPaidDate(closedSales),
     [closedSales, lowDate, highDate]
+  );
+  // then i want to have 2 array where the filtered closed sales is removed from filtered closedsalestoday, that would leave us with filtered closed sales today from previous days
+
+  // Closed sales from previous days (exclude today's closed sales)
+  const filteredClosedSalesPrevious = useMemo(
+    () =>
+      filteredClosedSalesToday.filter(
+        (sale) => !filteredClosedSales.some((s) => s.id === sale.id)
+      ),
+    [filteredClosedSales, filteredClosedSalesToday]
   );
 
   const openTotal = useMemo(() =>
@@ -145,6 +155,28 @@ export default function Reporting() {
               formatCurrency={formatCurrency}
             />
           </div>
+
+          {/* Closed sales today from Previous days  */}
+          <div className="mt-3 grid grid-cols-1">
+            <h2 className="text-xl font-bold text-center text-gray-900 dark:text-gray-100 mb-4">Previous Days</h2>
+          <SalesList
+            title="Closed Sales - Previous Days"
+            sales={filteredClosedSalesPrevious}
+            currentPage={closedPage}
+            totalPages={totalClosedPages}
+            onPrevPage={() => setClosedPage(p => p - 1)}
+            onNextPage={() => setClosedPage(p => p + 1)}
+            formatDate={formatDate}
+            formatCurrency={formatCurrency}
+          />
+          <ClosedSalesTotal
+            closedSales={filteredClosedSalesPrevious}
+            formatCurrency={formatCurrency}
+          />
+          </div>
+
+          
+
         </>
       )}
     </div>
