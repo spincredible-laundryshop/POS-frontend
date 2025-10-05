@@ -33,8 +33,28 @@ export default function Reporting() {
     });
   };
 
+  // Filter closed sales by payment date
+  const filterClosedSalesByPaidDate = (sales) => {
+    if (!lowDate || !highDate) return sales;
+
+    const start = new Date(lowDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(highDate);
+    end.setHours(23, 59, 59, 999);
+
+    return sales.filter((s) => {
+      if (!s.paid_at) return false; // skip unpaid sales
+      const paid = new Date(s.paid_at);
+      return paid >= start && paid <= end;
+    });
+  };
+
   const filteredOpenSales = useMemo(() => filterByDate(openSales), [openSales, lowDate, highDate]);
-  const filteredClosedSales = useMemo(() => filterByDate(closedSales), [closedSales, lowDate, highDate]);
+  // const filteredClosedSales = useMemo(() => filterByDate(closedSales), [closedSales, lowDate, highDate]);
+  const filteredClosedSales = useMemo(
+    () => filterClosedSalesByPaidDate(closedSales),
+    [closedSales, lowDate, highDate]
+  );
 
   const openTotal = useMemo(() =>
     filteredOpenSales.reduce((sum, sale) => sum + sale.items.reduce((a, i) => a + i.price * (i.qty || 1), 0), 0),
