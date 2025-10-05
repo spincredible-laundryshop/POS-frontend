@@ -158,7 +158,7 @@ const ListSales = ({
               border:none;
               border-radius:6px;
               cursor:pointer;
-            " onclick="window.print()">🖨️ Print Invoice</button>
+            " onclick="window.print()">Print Invoice</button>
           </body>
         </html>
       `);
