@@ -40,7 +40,7 @@ const Navbar = () => {
           to="/"
           className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 tracking-wide"
         >
-          TuldokBenta Demo 
+          Spincredible 
         </Link>
 
         {/* Desktop Navigation */}
