@@ -60,21 +60,27 @@ export const useSales = () => {
     setIsLoading(true);
     try {
       const now = new Date();
-  
-      // Convert to local YYYY-MM-DD
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      const today = `${year}-${month}-${day}`;
-  
-      // Build local time range for today
-      const lowdate = `${today} 00:00:00`;
-      const highdate = `${today} 23:59:59`;
+
+    // Convert to local YYYY-MM-DD
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
+
+    // Build local time range for today
+    const lowdateLocal = new Date(`${today}T00:00:00`);
+    const highdateLocal = new Date(`${today}T23:59:59`);
+
+    // ✅ Convert to "YYYY-MM-DD HH:MM:SS" (already in UTC)
+    const formatDate = (d) => d.toISOString().slice(0, 19).replace("T", " ");
+
+      console.log(lowdateLocal)
+      console.log(highdateLocal)
   
       await Promise.all([
         fetchOpenSales(),
         fetchClosedSales(),
-        fetchClosedSalesByDate(lowdate, highdate), // ✅ now uses local time
+        fetchClosedSalesByDate(formatDate(lowdateLocal), formatDate(highdateLocal)), // ✅ works now
       ]);
     } catch (error) {
       console.error("Error loading sales:", error);
