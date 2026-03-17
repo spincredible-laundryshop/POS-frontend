@@ -27,7 +27,9 @@ export default function OverviewSummary({
   openSales, 
   closedSales, 
   formatCurrency,
-  filters = null // Add filters prop
+  filters = null, // Add filters prop
+  allOpenSales = null, // Add original unfiltered data
+  allClosedSales = null // Add original unfiltered data
 }) {
   const [timePeriod, setTimePeriod] = useState('daily'); // 'yearly', 'monthly', 'weekly', 'daily'
   const [visibleItems, setVisibleItems] = useState(new Set()); // Track which items are visible in chart
@@ -54,21 +56,26 @@ export default function OverviewSummary({
       const createdDate = new Date(sale.created_at);
       const paidDate = sale.paid_at ? new Date(sale.paid_at) : null;
 
-      // For PAID sales: Include if paid within range (regardless of creation date)
+      // PRIORITY 1: Include ALL sales that were paid within the date range (regardless of creation date)
       if (paidDate) {
         const paidInRange = (!startDate || paidDate >= startDate) && (!endDate || paidDate <= endDate);
-        if (paidInRange) return true;
+        if (paidInRange) {
+          return true; // Always include if payment was made in range
+        }
       }
 
-      // For UNPAID sales: Include only if created within range
-      if (!paidDate) {
-        const createdInRange = (!startDate || createdDate >= startDate) && (!endDate || createdDate <= endDate);
-        return createdInRange;
-      }
-
-      // For paid sales not paid in range, include only if created in range
+      // PRIORITY 2: Include unpaid sales created within the range
       const createdInRange = (!startDate || createdDate >= startDate) && (!endDate || createdDate <= endDate);
-      return createdInRange;
+      if (!paidDate && createdInRange) {
+        return true; // Include unpaid sales from the period
+      }
+
+      // PRIORITY 3: Include paid sales created in range (even if paid outside range)
+      if (paidDate && createdInRange) {
+        return true; // Include sales created in period regardless of payment date
+      }
+
+      return false;
     });
   };
 
@@ -196,8 +203,8 @@ export default function OverviewSummary({
   };
 
   // Apply date filters to sales data
-  const dateFilteredOpenSales = useMemo(() => applyDateFilters(openSales), [openSales, filters]);
-  const dateFilteredClosedSales = useMemo(() => applyDateFilters(closedSales), [closedSales, filters]);
+  const dateFilteredOpenSales = useMemo(() => applyDateFilters(allOpenSales || openSales), [allOpenSales, openSales, filters]);
+  const dateFilteredClosedSales = useMemo(() => applyDateFilters(allClosedSales || closedSales), [allClosedSales, closedSales, filters]);
 
   // Calculate "Previous Days Paid in Range" - sales created outside filter range but paid within range
   const previousDaysPaidInRange = useMemo(() => {
@@ -211,7 +218,10 @@ export default function OverviewSummary({
     if (startDate) startDate.setHours(0, 0, 0, 0);
     if (endDate) endDate.setHours(23, 59, 59, 999);
 
-    return closedSales.filter(sale => {
+    // Use original unfiltered data to find all payments made in range
+    const allSales = [...(allClosedSales || closedSales)];
+    
+    return allSales.filter(sale => {
       if (!sale.paid_at) return false;
       
       const createdDate = new Date(sale.created_at);
@@ -225,7 +235,36 @@ export default function OverviewSummary({
       
       return paidInRange && createdOutsideRange;
     });
-  }, [closedSales, filters]);
+  }, [allClosedSales, closedSales, filters]);
+
+  // Calculate "Same Period Created and Paid" - sales created and paid within the selected range
+  const samePeriodCreatedAndPaid = useMemo(() => {
+    if (!filters || (!filters.dateRange.from && !filters.dateRange.to)) {
+      return [];
+    }
+
+    const startDate = filters.dateRange.from ? new Date(filters.dateRange.from) : null;
+    const endDate = filters.dateRange.to ? new Date(filters.dateRange.to) : null;
+    
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    // Use original unfiltered data to find all sales created and paid in range
+    const allSales = [...(allClosedSales || closedSales)];
+    
+    return allSales.filter(sale => {
+      if (!sale.paid_at) return false;
+      
+      const createdDate = new Date(sale.created_at);
+      const paidDate = new Date(sale.paid_at);
+      
+      // Check if both created and paid within range
+      const createdInRange = (!startDate || createdDate >= startDate) && (!endDate || createdDate <= endDate);
+      const paidInRange = (!startDate || paidDate >= startDate) && (!endDate || paidDate <= endDate);
+      
+      return createdInRange && paidInRange;
+    });
+  }, [allClosedSales, closedSales, filters]);
 
   // Calculate comprehensive analytics
   const analytics = useMemo(() => {
@@ -568,56 +607,62 @@ export default function OverviewSummary({
         </div>
       )}
 
-      {/* Daily Payment Summary (for daily view only) */}
-      {timePeriod === 'daily' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Daily Payment Activity Summary
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {analytics.chartData.slice(-7).map((dayData, index) => (
-              <div key={dayData.period} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
-                  {dayData.displayPeriod}
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Payments Made:</span>
-                    <span className="font-bold text-gray-900 dark:text-gray-100">
-                      {dayData.paymentsToday}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-600 dark:text-green-400">Cash:</span>
-                    <span className="font-medium text-green-600 dark:text-green-400">
-                      {safeFormatCurrency(dayData.cashPayments)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-blue-600 dark:text-blue-400">GCash:</span>
-                    <span className="font-medium text-blue-600 dark:text-blue-400">
-                      {safeFormatCurrency(dayData.gcashPayments)}
-                    </span>
-                  </div>
-                  {dayData.otherPayments > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-orange-600 dark:text-orange-400">Other:</span>
-                      <span className="font-medium text-orange-600 dark:text-orange-400">
-                        {safeFormatCurrency(dayData.otherPayments)}
+      {/* Same Period Created and Paid Card */}
+      {samePeriodCreatedAndPaid.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-2 border-green-200 dark:border-green-700">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Same Period Created and Paid
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Sales created and paid within the selected date range
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {samePeriodCreatedAndPaid.length}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Transactions</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-700 dark:text-green-300">
+                {safeFormatCurrency(
+                  samePeriodCreatedAndPaid.reduce((sum, sale) => 
+                    sum + sale.items.reduce((a, i) => a + (Number(i.price) || 0) * (i.qty || 1), 0), 0
+                  )
+                )}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+            </div>
+            <div className="text-center">
+              <div className="space-y-1">
+                {/* Payment method breakdown for same period created and paid */}
+                {(() => {
+                  const paymentBreakdown = {};
+                  samePeriodCreatedAndPaid.forEach(sale => {
+                    const method = sale.paid_using || 'Unknown';
+                    const amount = sale.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.qty || 1), 0);
+                    paymentBreakdown[method] = (paymentBreakdown[method] || 0) + amount;
+                  });
+                  
+                  return Object.entries(paymentBreakdown).map(([method, amount]) => (
+                    <div key={method} className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400 capitalize">{method}:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {safeFormatCurrency(amount)}
                       </span>
                     </div>
-                  )}
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Paid:</span>
-                      <span className="font-bold text-gray-900 dark:text-gray-100">
-                        {safeFormatCurrency(dayData.cashPayments + dayData.gcashPayments + dayData.otherPayments)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  ));
+                })()}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       )}
@@ -710,59 +755,6 @@ export default function OverviewSummary({
           </div>
         </div>
       </div>
-
-      {/* Daily Payment Methods Chart (for daily view only) */}
-      {timePeriod === 'daily' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            Daily Payment Methods Breakdown
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="displayPeriod" 
-                  tick={{ fontSize: 12 }}
-                  className="text-gray-600 dark:text-gray-400"
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  className="text-gray-600 dark:text-gray-400"
-                />
-                <Tooltip 
-                  formatter={(value, name) => [safeFormatCurrency(value), name]}
-                  labelStyle={{ color: '#374151' }}
-                  contentStyle={{ 
-                    backgroundColor: '#f9fafb', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '6px'
-                  }}
-                />
-                <Legend />
-                <Bar 
-                  dataKey="cashPayments" 
-                  fill="#10B981" 
-                  name="Cash Payments"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar 
-                  dataKey="gcashPayments" 
-                  fill="#3B82F6" 
-                  name="GCash Payments"
-                  radius={[2, 2, 0, 0]}
-                />
-                <Bar 
-                  dataKey="otherPayments" 
-                  fill="#F59E0B" 
-                  name="Other Payments"
-                  radius={[2, 2, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
 
       {/* Payment Methods Pie Chart */}
       {Object.keys(analytics.paymentMethodBreakdown).length > 0 && (
