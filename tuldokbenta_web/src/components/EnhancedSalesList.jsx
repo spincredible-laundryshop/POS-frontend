@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 
 export default function EnhancedSalesList({
   title,
@@ -78,8 +79,8 @@ export default function EnhancedSalesList({
   };
 
   const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️';
-    return sortOrder === 'asc' ? '↑' : '↓';
+    if (sortBy !== field) return <ChevronsUpDown size={14} />;
+    return sortOrder === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
   };
 
   // Calculate summary stats
@@ -133,7 +134,9 @@ export default function EnhancedSalesList({
                 : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
             }`}
           >
-            Created {getSortIcon('created_at')}
+            <span className="flex items-center gap-1">
+              Created {getSortIcon('created_at')}
+            </span>
           </button>
           {showPaymentInfo && (
             <button
@@ -144,7 +147,9 @@ export default function EnhancedSalesList({
                   : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
               }`}
             >
-              Paid {getSortIcon('paid_at')}
+              <span className="flex items-center gap-1">
+                Paid {getSortIcon('paid_at')}
+              </span>
             </button>
           )}
           <button
@@ -155,7 +160,9 @@ export default function EnhancedSalesList({
                 : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
             }`}
           >
-            Amount {getSortIcon('total')}
+            <span className="flex items-center gap-1">
+              Amount {getSortIcon('total')}
+            </span>
           </button>
           <button
             onClick={() => handleSort('invoice_number')}
@@ -165,7 +172,9 @@ export default function EnhancedSalesList({
                 : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300'
             }`}
           >
-            Invoice {getSortIcon('invoice_number')}
+            <span className="flex items-center gap-1">
+              Invoice {getSortIcon('invoice_number')}
+            </span>
           </button>
         </div>
       </div>
@@ -219,20 +228,13 @@ export default function EnhancedSalesList({
                         ))}
                       </div>
                     ) : (
-                      <div className="cursor-pointer" onClick={() => toggleExpanded(sale.id)}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            {sale.items.map((item, idx) => (
-                              <span key={idx}>
-                                {item.type === 'service' ? item.service_name : item.item_name}
-                                {idx < sale.items.length - 1 && ', '}
-                              </span>
-                            ))}
-                          </div>
-                          <span className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-                            ▼ Show Details
+                      <div>
+                        {sale.items.map((item, idx) => (
+                          <span key={idx}>
+                            {item.type === 'service' ? item.service_name : item.item_name}
+                            {idx < sale.items.length - 1 && ', '}
                           </span>
-                        </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -242,7 +244,7 @@ export default function EnhancedSalesList({
                   onClick={() => toggleExpanded(sale.id)}
                   className="ml-4 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform duration-200"
                 >
-                  {expandedSales.has(sale.id) ? '▲' : '▼'}
+                  {expandedSales.has(sale.id) ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                 </button>
               </div>
             </div>

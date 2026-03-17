@@ -1,5 +1,27 @@
 import { useMemo, useState, useEffect } from "react";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { 
+  Calendar, 
+  BarChart3, 
+  TrendingUp, 
+  PieChart as PieChartIcon,
+  FileText, 
+  CheckCircle, 
+  Diamond, 
+  Activity,
+  Wrench,
+  Package,
+  Gift,
+  CreditCard,
+  Smartphone,
+  Banknote,
+  Wallet,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 export default function OverviewSummary({ 
   openSales, 
@@ -17,10 +39,10 @@ export default function OverviewSummary({
 
   // Time period options
   const timePeriodOptions = [
-    { id: 'daily', label: 'Daily', icon: '📅' },
-    { id: 'weekly', label: 'Weekly', icon: '📊' },
-    { id: 'monthly', label: 'Monthly', icon: '📈' },
-    { id: 'yearly', label: 'Yearly', icon: '📋' }
+    { id: 'daily', label: 'Daily', icon: Calendar },
+    { id: 'weekly', label: 'Weekly', icon: BarChart3 },
+    { id: 'monthly', label: 'Monthly', icon: TrendingUp },
+    { id: 'yearly', label: 'Yearly', icon: FileText }
   ];
 
   // Format period labels for display
@@ -275,7 +297,7 @@ export default function OverviewSummary({
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              <span>{option.icon}</span>
+              <option.icon size={16} />
               {option.label}
             </button>
           ))}
@@ -422,9 +444,9 @@ export default function OverviewSummary({
                       {method}
                     </h4>
                     <span className="text-2xl">
-                      {method.toLowerCase() === 'cash' ? '💵' : 
-                       method.toLowerCase() === 'gcash' ? '📱' : 
-                       method.toLowerCase() === 'card' ? '💳' : '💰'}
+                      {method.toLowerCase() === 'cash' ? <Banknote size={24} /> : 
+                       method.toLowerCase() === 'gcash' ? <Smartphone size={24} /> : 
+                       method.toLowerCase() === 'card' ? <CreditCard size={24} /> : <Wallet size={24} />}
                     </span>
                   </div>
                   <div className="space-y-1">
@@ -461,20 +483,23 @@ export default function OverviewSummary({
               <div className="flex gap-2">
                 <button
                   onClick={() => setVisibleItems(new Set(analytics.inventoryUsed.map(item => item.name)))}
-                  className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
+                  <Eye size={12} />
                   Show All
                 </button>
                 <button
                   onClick={() => setVisibleItems(new Set())}
-                  className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
                 >
+                  <EyeOff size={12} />
                   Hide All
                 </button>
                 <button
                   onClick={() => setVisibleItems(new Set(analytics.inventoryUsed.slice(0, 8).map(item => item.name)))}
-                  className="px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                 >
+                  <RotateCcw size={12} />
                   Top 8
                 </button>
               </div>
@@ -545,7 +570,7 @@ export default function OverviewSummary({
               ) : (
                 <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded">
                   <div className="text-center">
-                    <div className="text-4xl mb-2">📊</div>
+                    <BarChart3 size={48} className="mx-auto mb-2 text-gray-400" />
                     <p className="text-gray-600 dark:text-gray-400">No items selected</p>
                     <p className="text-sm text-gray-500 dark:text-gray-500">
                       Toggle items above to display
@@ -729,7 +754,7 @@ export default function OverviewSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-400 text-xl">📋</span>
+              <FileText className="text-blue-600 dark:text-blue-400" size={24} />
             </div>
           </div>
         </div>
@@ -747,7 +772,7 @@ export default function OverviewSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <span className="text-green-600 dark:text-green-400 text-xl">✅</span>
+              <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
             </div>
           </div>
         </div>
@@ -765,7 +790,7 @@ export default function OverviewSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 dark:text-indigo-400 text-xl">💎</span>
+              <Diamond className="text-indigo-600 dark:text-indigo-400" size={24} />
             </div>
           </div>
         </div>
@@ -787,7 +812,7 @@ export default function OverviewSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 dark:text-purple-400 text-xl">📊</span>
+              <Activity className="text-purple-600 dark:text-purple-400" size={24} />
             </div>
           </div>
         </div>
@@ -941,7 +966,7 @@ export default function OverviewSummary({
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                     [{group.category}]
                   </h4>
-                  <span className="text-2xl">📦</span>
+                  <Package size={24} className="text-gray-600 dark:text-gray-400" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">

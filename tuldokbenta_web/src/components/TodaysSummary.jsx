@@ -1,4 +1,18 @@
 import { useMemo } from "react";
+import { 
+  FileText, 
+  CheckCircle, 
+  Wallet, 
+  Diamond, 
+  Banknote,
+  Wrench,
+  Package,
+  Gift,
+  CreditCard,
+  Smartphone,
+  BarChart3,
+  Activity
+} from 'lucide-react';
 
 export default function TodaysSummary({ 
   openSales, 
@@ -224,7 +238,7 @@ export default function TodaysSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-400 text-xl">📋</span>
+              <FileText className="text-blue-600 dark:text-blue-400" size={24} />
             </div>
           </div>
         </div>
@@ -242,7 +256,7 @@ export default function TodaysSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <span className="text-green-600 dark:text-green-400 text-xl">✅</span>
+              <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
             </div>
           </div>
         </div>
@@ -260,7 +274,7 @@ export default function TodaysSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 dark:text-purple-400 text-xl">💰</span>
+              <Wallet className="text-purple-600 dark:text-purple-400" size={24} />
             </div>
           </div>
         </div>
@@ -278,7 +292,7 @@ export default function TodaysSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 dark:text-indigo-400 text-xl">💎</span>
+              <Diamond className="text-indigo-600 dark:text-indigo-400" size={24} />
             </div>
           </div>
         </div>
@@ -296,7 +310,7 @@ export default function TodaysSummary({
               </p>
             </div>
             <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-              <span className="text-emerald-600 dark:text-emerald-400 text-xl">💵</span>
+              <Banknote className="text-emerald-600 dark:text-emerald-400" size={24} />
             </div>
           </div>
         </div>
@@ -316,9 +330,9 @@ export default function TodaysSummary({
                     {method}
                   </h4>
                   <span className="text-2xl">
-                    {method.toLowerCase() === 'cash' ? '💵' : 
-                     method.toLowerCase() === 'gcash' ? '📱' : 
-                     method.toLowerCase() === 'card' ? '💳' : '💰'}
+                    {method.toLowerCase() === 'cash' ? <Banknote size={24} /> : 
+                     method.toLowerCase() === 'gcash' ? <Smartphone size={24} /> : 
+                     method.toLowerCase() === 'card' ? <CreditCard size={24} /> : <Wallet size={24} />}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -486,7 +500,7 @@ export default function TodaysSummary({
                   <h4 className="font-semibold text-gray-900 dark:text-gray-100">
                     [{group.category}]
                   </h4>
-                  <span className="text-2xl">📦</span>
+                  <Package size={24} className="text-gray-600 dark:text-gray-400" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -554,7 +568,7 @@ export default function TodaysSummary({
                     {item.name}
                   </h4>
                   <span className="text-lg">
-                    {item.revenue > 0 ? '💰' : '🎁'}
+                    {item.revenue > 0 ? <Wallet size={20} className="text-green-600 dark:text-green-400" /> : <Gift size={20} className="text-pink-600 dark:text-pink-400" />}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -602,13 +616,34 @@ export default function TodaysSummary({
       {(todaysOpenSales.length > 0 || todaysClosedSales.length > 0 || closedSalesTodayFromPrevious.length > 0) && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-            <span>📊 Open: {todaysOpenSales.length} sales</span>
-            <span>✅ Closed: {todaysClosedSales.length} sales</span>
-            <span>💰 Previous Paid: {closedSalesTodayFromPrevious.length} sales</span>
-            <span>🛍️ Services: {todaysItemsAndServices.serviceCount} units</span>
-            <span>📦 Items: {todaysItemsAndServices.itemCount} units</span>
-            <span>🎁 Freebies: {todaysItemsAndServices.freebieCount} units</span>
-            <span>💵 Total Paid: {safeFormatCurrency(todaysPaidTotal)}</span>
+            <span className="flex items-center gap-1">
+              <BarChart3 size={16} />
+              Open: {todaysOpenSales.length} sales
+            </span>
+            <span className="flex items-center gap-1">
+              <CheckCircle size={16} />
+              Closed: {todaysClosedSales.length} sales
+            </span>
+            <span className="flex items-center gap-1">
+              <Wallet size={16} />
+              Previous Paid: {closedSalesTodayFromPrevious.length} sales
+            </span>
+            <span className="flex items-center gap-1">
+              <Wrench size={16} />
+              Services: {todaysItemsAndServices.serviceCount} units
+            </span>
+            <span className="flex items-center gap-1">
+              <Package size={16} />
+              Items: {todaysItemsAndServices.itemCount} units
+            </span>
+            <span className="flex items-center gap-1">
+              <Gift size={16} />
+              Freebies: {todaysItemsAndServices.freebieCount} units
+            </span>
+            <span className="flex items-center gap-1">
+              <Banknote size={16} />
+              Total Paid: {safeFormatCurrency(todaysPaidTotal)}
+            </span>
           </div>
         </div>
       )}
