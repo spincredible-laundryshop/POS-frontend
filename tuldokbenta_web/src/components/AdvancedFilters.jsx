@@ -10,6 +10,7 @@ export default function AdvancedFilters({
     serviceName: '',
     serviceType: 'all', // 'all', 'service', 'item'
     paymentMethod: 'all', // 'all', 'cash', 'gcash', etc.
+    searchQuery: '', // New search field
     dateRange: {
       from: '',
       to: ''
@@ -56,6 +57,7 @@ export default function AdvancedFilters({
       serviceName: '',
       serviceType: 'all',
       paymentMethod: 'all',
+      searchQuery: '',
       dateRange: { from: '', to: '' }
     };
     setFilters(resetFilters);
@@ -86,7 +88,21 @@ export default function AdvancedFilters({
       </div>
 
       {/* Basic Filters - Always Visible */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        {/* Global Search */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Search
+          </label>
+          <input
+            type="text"
+            value={filters.searchQuery}
+            onChange={(e) => handleFilterChange('searchQuery', e.target.value)}
+            placeholder="Search invoice, service, item..."
+            className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+          />
+        </div>
+
         {/* Date Range */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -199,11 +215,16 @@ export default function AdvancedFilters({
       )}
 
       {/* Active Filters Display */}
-      {(filters.invoiceNumber || filters.serviceName || filters.serviceType !== 'all' || 
+      {(filters.searchQuery || filters.invoiceNumber || filters.serviceName || filters.serviceType !== 'all' || 
         filters.paymentMethod !== 'all' || filters.dateRange.from || filters.dateRange.to) && (
         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex flex-wrap gap-2">
             <span className="text-sm text-gray-600 dark:text-gray-400">Active filters:</span>
+            {filters.searchQuery && (
+              <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded text-sm">
+                Search: "{filters.searchQuery}"
+              </span>
+            )}
             {filters.dateRange.from && filters.dateRange.to && (
               <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-sm">
                 {filters.dateRange.from} to {filters.dateRange.to}

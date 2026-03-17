@@ -3,6 +3,7 @@ import { useSales } from "../hooks/useSales";
 import AdvancedFilters from "../components/AdvancedFilters";
 import EnhancedSalesList from "../components/EnhancedSalesList";
 import TodaysSummary from "../components/TodaysSummary";
+import OverviewSummary from "../components/OverviewSummary";
 import GrandTotalCard from "../components/GrandTotalCard";
 import SalesSummary from "../components/SalesSummary";
 import ClosedSalesTotal from "../components/ClosedSalesTotal";
@@ -14,6 +15,7 @@ export default function Reporting() {
     serviceName: '',
     serviceType: 'all',
     paymentMethod: 'all',
+    searchQuery: '',
     dateRange: { from: '', to: '' }
   });
   const [activeTab, setActiveTab] = useState('today'); // 'today', 'overview', 'open', 'closed'
@@ -55,6 +57,25 @@ export default function Reporting() {
   // Apply all filters to sales data
   const applyFilters = (sales, includePaymentFilters = false) => {
     return sales.filter(sale => {
+      // Global search filter
+      if (filters.searchQuery) {
+        const searchTerm = filters.searchQuery.toLowerCase();
+        const matchesInvoice = sale.invoice_number.toLowerCase().includes(searchTerm);
+        const matchesItems = sale.items.some(item => {
+          if (item.type === 'service') {
+            return item.service_name.toLowerCase().includes(searchTerm);
+          } else if (item.type === 'item') {
+            return item.item_name.toLowerCase().includes(searchTerm);
+          }
+          return false;
+        });
+        const matchesPayment = sale.paid_using && sale.paid_using.toLowerCase().includes(searchTerm);
+        
+        if (!matchesInvoice && !matchesItems && !matchesPayment) {
+          return false;
+        }
+      }
+
       // Date range filter
       if (filters.dateRange.from && filters.dateRange.to) {
         const start = new Date(filters.dateRange.from);
@@ -126,6 +147,7 @@ export default function Reporting() {
       serviceName: '',
       serviceType: 'all',
       paymentMethod: 'all',
+      searchQuery: '',
       dateRange: { from: '', to: '' }
     });
   };
@@ -241,44 +263,12 @@ export default function Reporting() {
                 onReset={handleFiltersReset}
               />
 
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <GrandTotalCard 
-                  grandTotal={grandTotal} 
-                  openTotal={openTotal} 
-                  closedTotal={closedTotal} 
-                  formatCurrency={formatCurrency} 
-                />
-                <SalesSummary
-                  openSales={filteredOpenSales}
-                  closedSales={filteredClosedSales}
-                  formatCurrency={formatCurrency}
-                />
-                <ClosedSalesTotal
-                  closedSales={filteredClosedSales}
-                  formatCurrency={formatCurrency}
-                />
-              </div>
-
-              {/* Service Analytics */}
-              {serviceAnalytics.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                    Top Services
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {serviceAnalytics.slice(0, 6).map(service => (
-                      <div key={service.name} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{service.name}</h4>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                          <div>Count: {service.count}</div>
-                          <div>Revenue: {formatCurrency(service.revenue)}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Overview Summary */}
+              <OverviewSummary
+                openSales={filteredOpenSales}
+                closedSales={filteredClosedSales}
+                formatCurrency={formatCurrency}
+              />
 
               {/* Recent Sales Preview */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

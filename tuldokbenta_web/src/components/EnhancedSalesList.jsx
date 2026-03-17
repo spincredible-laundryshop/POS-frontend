@@ -219,18 +219,20 @@ export default function EnhancedSalesList({
                         ))}
                       </div>
                     ) : (
-                      <div>
-                        {sale.items.slice(0, 2).map((item, idx) => (
-                          <span key={idx}>
-                            {item.type === 'service' ? item.service_name : item.item_name}
-                            {idx < Math.min(sale.items.length, 2) - 1 && ', '}
+                      <div className="cursor-pointer" onClick={() => toggleExpanded(sale.id)}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            {sale.items.map((item, idx) => (
+                              <span key={idx}>
+                                {item.type === 'service' ? item.service_name : item.item_name}
+                                {idx < sale.items.length - 1 && ', '}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                            ▼ Show Details
                           </span>
-                        ))}
-                        {sale.items.length > 2 && (
-                          <span className="text-gray-500 dark:text-gray-400">
-                            {' '}and {sale.items.length - 2} more...
-                          </span>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -238,9 +240,9 @@ export default function EnhancedSalesList({
 
                 <button
                   onClick={() => toggleExpanded(sale.id)}
-                  className="ml-4 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                  className="ml-4 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-transform duration-200"
                 >
-                  {expandedSales.has(sale.id) ? '▼' : '▶'}
+                  {expandedSales.has(sale.id) ? '▲' : '▼'}
                 </button>
               </div>
             </div>
