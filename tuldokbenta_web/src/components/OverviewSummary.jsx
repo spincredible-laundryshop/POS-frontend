@@ -26,7 +26,8 @@ import {
 export default function OverviewSummary({ 
   openSales, 
   closedSales, 
-  formatCurrency 
+  formatCurrency,
+  filters = null // Add filters prop
 }) {
   const [timePeriod, setTimePeriod] = useState('daily'); // 'yearly', 'monthly', 'weekly', 'daily'
   const [visibleItems, setVisibleItems] = useState(new Set()); // Track which items are visible in chart
@@ -35,6 +36,40 @@ export default function OverviewSummary({
   const safeFormatCurrency = (value) => {
     const numValue = Number(value) || 0;
     return formatCurrency(numValue);
+  };
+
+  // Apply date filters to sales data considering both created_at and paid_at
+  const applyDateFilters = (sales) => {
+    if (!filters || (!filters.dateRange.from && !filters.dateRange.to)) {
+      return sales;
+    }
+
+    const startDate = filters.dateRange.from ? new Date(filters.dateRange.from) : null;
+    const endDate = filters.dateRange.to ? new Date(filters.dateRange.to) : null;
+    
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    return sales.filter(sale => {
+      const createdDate = new Date(sale.created_at);
+      const paidDate = sale.paid_at ? new Date(sale.paid_at) : null;
+
+      // For PAID sales: Include if paid within range (regardless of creation date)
+      if (paidDate) {
+        const paidInRange = (!startDate || paidDate >= startDate) && (!endDate || paidDate <= endDate);
+        if (paidInRange) return true;
+      }
+
+      // For UNPAID sales: Include only if created within range
+      if (!paidDate) {
+        const createdInRange = (!startDate || createdDate >= startDate) && (!endDate || createdDate <= endDate);
+        return createdInRange;
+      }
+
+      // For paid sales not paid in range, include only if created in range
+      const createdInRange = (!startDate || createdDate >= startDate) && (!endDate || createdDate <= endDate);
+      return createdInRange;
+    });
   };
 
   // Time period options
@@ -61,54 +96,140 @@ export default function OverviewSummary({
     }
   };
 
-  // Group sales data by time period
+  // Group sales data by time period with improved daily tracking
   const groupSalesByPeriod = (sales, period) => {
     const grouped = {};
     
-    sales.forEach(sale => {
-      const date = new Date(sale.created_at);
-      let key;
-      
+    // Helper function to get period key from date
+    const getPeriodKey = (date, period) => {
       switch (period) {
         case 'yearly':
-          key = date.getFullYear().toString();
-          break;
+          return date.getFullYear().toString();
         case 'monthly':
-          key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          break;
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         case 'weekly':
           const startOfWeek = new Date(date);
           startOfWeek.setDate(date.getDate() - date.getDay());
-          key = startOfWeek.toISOString().split('T')[0];
-          break;
+          return startOfWeek.toISOString().split('T')[0];
         case 'daily':
         default:
-          key = date.toISOString().split('T')[0];
-          break;
+          return date.toISOString().split('T')[0];
       }
-      
-      if (!grouped[key]) {
-        grouped[key] = { open: [], closed: [], total: 0, revenue: 0 };
-      }
-      
+    };
+    
+    // Process all sales
+    sales.forEach(sale => {
+      const createdDate = new Date(sale.created_at);
+      const createdKey = getPeriodKey(createdDate, period);
       const saleTotal = sale.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.qty || 1), 0);
       
-      if (sale.paid_at) {
-        grouped[key].closed.push(sale);
-      } else {
-        grouped[key].open.push(sale);
+      // Initialize creation period if not exists
+      if (!grouped[createdKey]) {
+        grouped[createdKey] = { 
+          open: [], 
+          closed: [], 
+          total: 0, 
+          revenue: 0,
+          paymentsToday: [],
+          cashPayments: 0,
+          gcashPayments: 0,
+          otherPayments: 0
+        };
       }
       
-      grouped[key].total += 1;
-      grouped[key].revenue += saleTotal;
+      if (sale.paid_at) {
+        const paidDate = new Date(sale.paid_at);
+        const paidKey = getPeriodKey(paidDate, period);
+        
+        // Initialize payment period if not exists
+        if (!grouped[paidKey]) {
+          grouped[paidKey] = { 
+            open: [], 
+            closed: [], 
+            total: 0, 
+            revenue: 0,
+            paymentsToday: [],
+            cashPayments: 0,
+            gcashPayments: 0,
+            otherPayments: 0
+          };
+        }
+        
+        // ALWAYS add payment info to the day it was actually paid
+        grouped[paidKey].paymentsToday.push(sale);
+        grouped[paidKey].revenue += saleTotal;
+        
+        // Track payment methods for the day it was paid
+        const paymentMethod = (sale.paid_using || '').toLowerCase();
+        if (paymentMethod === 'cash') {
+          grouped[paidKey].cashPayments += saleTotal;
+        } else if (paymentMethod === 'gcash') {
+          grouped[paidKey].gcashPayments += saleTotal;
+        } else {
+          grouped[paidKey].otherPayments += saleTotal;
+        }
+        
+        // Handle closed/open classification based on creation vs payment date
+        if (createdKey === paidKey) {
+          // Same day: add to closed for creation day
+          grouped[createdKey].closed.push(sale);
+          grouped[createdKey].total += 1;
+        } else {
+          // Different days: 
+          // - Add to open for creation day (wasn't paid same day)
+          grouped[createdKey].open.push(sale);
+          grouped[createdKey].total += 1;
+          
+          // - Add to closed for payment day (but don't double count in total)
+          grouped[paidKey].closed.push(sale);
+          // Don't increment total for payment day if it's a different day than creation
+        }
+        
+      } else {
+        // Unpaid sale - add to open for creation day
+        grouped[createdKey].open.push(sale);
+        grouped[createdKey].total += 1;
+      }
     });
     
     return grouped;
   };
 
+  // Apply date filters to sales data
+  const dateFilteredOpenSales = useMemo(() => applyDateFilters(openSales), [openSales, filters]);
+  const dateFilteredClosedSales = useMemo(() => applyDateFilters(closedSales), [closedSales, filters]);
+
+  // Calculate "Previous Days Paid in Range" - sales created outside filter range but paid within range
+  const previousDaysPaidInRange = useMemo(() => {
+    if (!filters || (!filters.dateRange.from && !filters.dateRange.to)) {
+      return [];
+    }
+
+    const startDate = filters.dateRange.from ? new Date(filters.dateRange.from) : null;
+    const endDate = filters.dateRange.to ? new Date(filters.dateRange.to) : null;
+    
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    return closedSales.filter(sale => {
+      if (!sale.paid_at) return false;
+      
+      const createdDate = new Date(sale.created_at);
+      const paidDate = new Date(sale.paid_at);
+      
+      // Check if paid within range
+      const paidInRange = (!startDate || paidDate >= startDate) && (!endDate || paidDate <= endDate);
+      
+      // Check if created outside range
+      const createdOutsideRange = (startDate && createdDate < startDate) || (endDate && createdDate > endDate);
+      
+      return paidInRange && createdOutsideRange;
+    });
+  }, [closedSales, filters]);
+
   // Calculate comprehensive analytics
   const analytics = useMemo(() => {
-    const allSales = [...openSales, ...closedSales];
+    const allSales = [...dateFilteredOpenSales, ...dateFilteredClosedSales];
     
     let itemCount = 0;
     let serviceCount = 0;
@@ -133,12 +254,16 @@ export default function OverviewSummary({
         closedSales: data.closed.length,
         totalSales: data.total,
         revenue: data.revenue,
+        paymentsToday: data.paymentsToday.length,
+        cashPayments: data.cashPayments,
+        gcashPayments: data.gcashPayments,
+        otherPayments: data.otherPayments,
         displayPeriod: formatPeriodLabel(period, timePeriod)
       }))
       .sort((a, b) => a.period.localeCompare(b.period));
 
     allSales.forEach(sale => {
-      // Payment method tracking (only for closed sales)
+      // Payment method tracking (only for closed sales, based on paid_at date)
       if (sale.paid_at && sale.paid_using) {
         const paymentMethod = sale.paid_using;
         const saleTotal = sale.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.qty || 1), 0);
@@ -205,11 +330,11 @@ export default function OverviewSummary({
       });
     });
 
-    const openTotal = openSales.reduce((sum, sale) => 
+    const openTotal = dateFilteredOpenSales.reduce((sum, sale) => 
       sum + sale.items.reduce((a, i) => a + (Number(i.price) || 0) * (i.qty || 1), 0), 0
     );
 
-    const closedTotal = closedSales.reduce((sum, sale) => 
+    const closedTotal = dateFilteredClosedSales.reduce((sum, sale) => 
       sum + sale.items.reduce((a, i) => a + (Number(i.price) || 0) * (i.qty || 1), 0), 0
     );
 
@@ -249,7 +374,7 @@ export default function OverviewSummary({
         .sort((a, b) => b.count - a.count),
       paymentMethodBreakdown
     };
-  }, [openSales, closedSales, timePeriod]);
+  }, [dateFilteredOpenSales, dateFilteredClosedSales, timePeriod]);
 
   // Initialize visible items when inventory data changes
   useEffect(() => {
@@ -312,7 +437,7 @@ export default function OverviewSummary({
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Open Sales</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {openSales.length}
+                {dateFilteredOpenSales.length}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500">
                 {safeFormatCurrency(analytics.openTotal)}
@@ -330,7 +455,7 @@ export default function OverviewSummary({
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Closed Sales</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {closedSales.length}
+                {dateFilteredClosedSales.length}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500">
                 {safeFormatCurrency(analytics.closedTotal)}
@@ -348,7 +473,7 @@ export default function OverviewSummary({
             <div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
               <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                {openSales.length + closedSales.length}
+                {dateFilteredOpenSales.length + dateFilteredClosedSales.length}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-500">
                 {safeFormatCurrency(analytics.grandTotal)}
@@ -367,8 +492,8 @@ export default function OverviewSummary({
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Sale</p>
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {safeFormatCurrency(
-                  (openSales.length + closedSales.length) > 0 
-                    ? analytics.grandTotal / (openSales.length + closedSales.length)
+                  (dateFilteredOpenSales.length + dateFilteredClosedSales.length) > 0 
+                    ? analytics.grandTotal / (dateFilteredOpenSales.length + dateFilteredClosedSales.length)
                     : 0
                 )}
               </p>
@@ -382,6 +507,120 @@ export default function OverviewSummary({
           </div>
         </div>
       </div>
+
+      {/* Previous Days Paid in Range Card */}
+      {previousDaysPaidInRange.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-2 border-orange-200 dark:border-orange-700">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Previous Days Paid in Range
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Sales created before the date range but paid within it
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+              <RotateCcw className="text-orange-600 dark:text-orange-400" size={24} />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {previousDaysPaidInRange.length}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Transactions</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                {safeFormatCurrency(
+                  previousDaysPaidInRange.reduce((sum, sale) => 
+                    sum + sale.items.reduce((a, i) => a + (Number(i.price) || 0) * (i.qty || 1), 0), 0
+                  )
+                )}
+              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+            </div>
+            <div className="text-center">
+              <div className="space-y-1">
+                {/* Payment method breakdown for previous days paid */}
+                {(() => {
+                  const paymentBreakdown = {};
+                  previousDaysPaidInRange.forEach(sale => {
+                    const method = sale.paid_using || 'Unknown';
+                    const amount = sale.items.reduce((sum, item) => sum + (Number(item.price) || 0) * (item.qty || 1), 0);
+                    paymentBreakdown[method] = (paymentBreakdown[method] || 0) + amount;
+                  });
+                  
+                  return Object.entries(paymentBreakdown).map(([method, amount]) => (
+                    <div key={method} className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400 capitalize">{method}:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                        {safeFormatCurrency(amount)}
+                      </span>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daily Payment Summary (for daily view only) */}
+      {timePeriod === 'daily' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Daily Payment Activity Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {analytics.chartData.slice(-7).map((dayData, index) => (
+              <div key={dayData.period} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+                  {dayData.displayPeriod}
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Payments Made:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">
+                      {dayData.paymentsToday}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-600 dark:text-green-400">Cash:</span>
+                    <span className="font-medium text-green-600 dark:text-green-400">
+                      {safeFormatCurrency(dayData.cashPayments)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-blue-600 dark:text-blue-400">GCash:</span>
+                    <span className="font-medium text-blue-600 dark:text-blue-400">
+                      {safeFormatCurrency(dayData.gcashPayments)}
+                    </span>
+                  </div>
+                  {dayData.otherPayments > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-orange-600 dark:text-orange-400">Other:</span>
+                      <span className="font-medium text-orange-600 dark:text-orange-400">
+                        {safeFormatCurrency(dayData.otherPayments)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Paid:</span>
+                      <span className="font-bold text-gray-900 dark:text-gray-100">
+                        {safeFormatCurrency(dayData.cashPayments + dayData.gcashPayments + dayData.otherPayments)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -471,6 +710,59 @@ export default function OverviewSummary({
           </div>
         </div>
       </div>
+
+      {/* Daily Payment Methods Chart (for daily view only) */}
+      {timePeriod === 'daily' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            Daily Payment Methods Breakdown
+          </h3>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={analytics.chartData}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="displayPeriod" 
+                  tick={{ fontSize: 12 }}
+                  className="text-gray-600 dark:text-gray-400"
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  className="text-gray-600 dark:text-gray-400"
+                />
+                <Tooltip 
+                  formatter={(value, name) => [safeFormatCurrency(value), name]}
+                  labelStyle={{ color: '#374151' }}
+                  contentStyle={{ 
+                    backgroundColor: '#f9fafb', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '6px'
+                  }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="cashPayments" 
+                  fill="#10B981" 
+                  name="Cash Payments"
+                  radius={[2, 2, 0, 0]}
+                />
+                <Bar 
+                  dataKey="gcashPayments" 
+                  fill="#3B82F6" 
+                  name="GCash Payments"
+                  radius={[2, 2, 0, 0]}
+                />
+                <Bar 
+                  dataKey="otherPayments" 
+                  fill="#F59E0B" 
+                  name="Other Payments"
+                  radius={[2, 2, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Payment Methods Pie Chart */}
       {Object.keys(analytics.paymentMethodBreakdown).length > 0 && (

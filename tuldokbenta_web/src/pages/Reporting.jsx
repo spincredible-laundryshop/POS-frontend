@@ -268,6 +268,7 @@ export default function Reporting() {
                 openSales={filteredOpenSales}
                 closedSales={filteredClosedSales}
                 formatCurrency={formatCurrency}
+                filters={filters}
               />
 
               {/* Recent Sales Preview */}
