@@ -304,6 +304,85 @@ export default function OverviewSummary({
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Open Sales */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Open Sales</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {openSales.length}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                {safeFormatCurrency(analytics.openTotal)}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+              <FileText className="text-blue-600 dark:text-blue-400" size={24} />
+            </div>
+          </div>
+        </div>
+
+        {/* Closed Sales */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Closed Sales</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {closedSales.length}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                {safeFormatCurrency(analytics.closedTotal)}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Sales */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-2 border-indigo-200 dark:border-indigo-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
+              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {openSales.length + closedSales.length}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                {safeFormatCurrency(analytics.grandTotal)}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+              <Diamond className="text-indigo-600 dark:text-indigo-400" size={24} />
+            </div>
+          </div>
+        </div>
+
+        {/* Average Sale */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Sale</p>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {safeFormatCurrency(
+                  (openSales.length + closedSales.length) > 0 
+                    ? analytics.grandTotal / (openSales.length + closedSales.length)
+                    : 0
+                )}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Per transaction
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+              <Activity className="text-purple-600 dark:text-purple-400" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend Chart */}
@@ -584,7 +663,7 @@ export default function OverviewSummary({
                 Item Details ({analytics.inventoryUsed.length} total)
               </h4>
               <div className="max-h-48 overflow-y-auto space-y-2">
-                {analytics.inventoryUsed.slice(0, 10).map((item, index) => (
+                {analytics.inventoryUsed.map((item, index) => (
                   <div 
                     key={item.name} 
                     className={`flex items-center justify-between p-2 rounded transition-opacity ${
@@ -737,83 +816,6 @@ export default function OverviewSummary({
                 />
               </PieChart>
             </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Open Sales */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Open Sales</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {openSales.length}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                {safeFormatCurrency(analytics.openTotal)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <FileText className="text-blue-600 dark:text-blue-400" size={24} />
-            </div>
-          </div>
-        </div>
-
-        {/* Closed Sales */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Closed Sales</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {closedSales.length}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                {safeFormatCurrency(analytics.closedTotal)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-              <CheckCircle className="text-green-600 dark:text-green-400" size={24} />
-            </div>
-          </div>
-        </div>
-
-        {/* Total Sales */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-2 border-indigo-200 dark:border-indigo-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Sales</p>
-              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                {openSales.length + closedSales.length}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                {safeFormatCurrency(analytics.grandTotal)}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
-              <Diamond className="text-indigo-600 dark:text-indigo-400" size={24} />
-            </div>
-          </div>
-        </div>
-
-        {/* Average Sale */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Sale</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {safeFormatCurrency(
-                  (openSales.length + closedSales.length) > 0 
-                    ? analytics.grandTotal / (openSales.length + closedSales.length)
-                    : 0
-                )}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Per transaction
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-              <Activity className="text-purple-600 dark:text-purple-400" size={24} />
-            </div>
           </div>
         </div>
       </div>
