@@ -29,15 +29,15 @@ const OpenSalesOffline = () => {
   ]);
 
   const [services] = useState([
-    { id: 1, service_name: "Full Service", price: 160.00, freebies: [
+    { id: 1, service_name: "Full Service", price: 170.00, freebies: [
         "Plastic",
         "Detergent",
         "Fabcon"
       ] },
-    { id: 2, service_name: "Wash", price: 50.00, freebies: [] },
-    { id: 3, service_name: "Dry", price: 50.00, freebies: [] },
-    { id: 4, service_name: "Extra Wash", price: 25.00, freebies: [] },
-    { id: 5, service_name: "Extra Dry", price: 25.00, freebies: [] },
+    { id: 2, service_name: "Wash", price: 60.00, freebies: [] },
+    { id: 3, service_name: "Dry", price: 60.00, freebies: [] },
+    { id: 4, service_name: "Extra Wash", price: 30.00, freebies: [] },
+    { id: 5, service_name: "Extra Dry", price: 30.00, freebies: [] },
     { id: 6, service_name: "Fold", price: 20, freebies: [] },
   ]);
 
